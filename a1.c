@@ -12,17 +12,23 @@
  */
 void generate_selections(int a[], int n, int k, int b[], void *data, void (*process_selection)(int *b, int k, void *data))
 {
-    b[0] = 2; b[1] = 1;
+    b[0] = 2;
+    b[1] = 1;
     process_selection(b, 2, data);
-    b[0] = 2; b[1] = 6;
+    b[0] = 2;
+    b[1] = 6;
     process_selection(b, 2, data);
-    b[0] = 2; b[1] = 5;
+    b[0] = 2;
+    b[1] = 5;
     process_selection(b, 2, data);
-    b[0] = 1; b[1] = 6;
+    b[0] = 1;
+    b[1] = 6;
     process_selection(b, 2, data);
-    b[0] = 1; b[1] = 5;
+    b[0] = 1;
+    b[1] = 5;
     process_selection(b, 2, data);
-    b[0] = 6; b[1] = 5;
+    b[0] = 6;
+    b[1] = 5;
     process_selection(b, 2, data);
 }
 
@@ -54,11 +60,47 @@ void previous_permutation(int a[], int n)
     a[3] = 6;
     a[4] = 3;
     a[5] = 2;
+
+    for (int i = 5; i > 0; i++)
+    {
+        if (a[i] < a[i - 1])
+        {
+            // swap with just smaller element and arrange in descending order and then break
+            int maxi = i - 1;
+            for (int j = i; j < 5; j++)
+            {
+                if (a[j] < a[i - 1] && a[j] > a[maxi])
+                {
+                    maxi = j;
+                }
+            }
+            // swap with maxi
+            int temp = a[maxi];
+            a[maxi] = a[i - 1];
+            a[i - 1] = temp;
+
+            for (int k = i; k < 5; k++)
+            {
+                int key = a[k];
+                int j = k - 1;
+
+                // Move elements of arr[0..i-1] that are greater than key
+                // to one position ahead of their current position
+                while (j >= i && a[j] > key)
+                {
+                    a[j + 1] = a[j];
+                    j = j - 1;
+                }
+                a[j + 1] = key;
+            }
+        }
+    }
 }
 
 /* Write your tests here. Use the previous assignment for reference. */
 
-typedef struct {
+typedef struct
+{
     int index;
     int err;
 } state_t;
@@ -67,34 +109,41 @@ static void test_selections_2165(int b[], int k, void *data)
 {
     state_t *s = (state_t *)data;
     s->err = 0;
-    switch (s->index) {
+    switch (s->index)
+    {
     case 0:
-        if ((b[0] != 2) || (b[1] != 1)) {
+        if ((b[0] != 2) || (b[1] != 1))
+        {
             s->err = 1;
         }
         break;
     case 1:
-        if ((b[0] != 2) || (b[1] != 6)) {
+        if ((b[0] != 2) || (b[1] != 6))
+        {
             s->err = 1;
         }
         break;
     case 2:
-        if ((b[0] != 2) || (b[1] != 5)) {
+        if ((b[0] != 2) || (b[1] != 5))
+        {
             s->err = 1;
         }
         break;
     case 3:
-        if ((b[0] != 1) || (b[1] != 6)) {
+        if ((b[0] != 1) || (b[1] != 6))
+        {
             s->err = 1;
         }
         break;
     case 4:
-        if ((b[0] != 1) || (b[1] != 5)) {
+        if ((b[0] != 1) || (b[1] != 5))
+        {
             s->err = 1;
         }
         break;
     case 5:
-        if ((b[0] != 6) || (b[1] != 5)) {
+        if ((b[0] != 6) || (b[1] != 5))
+        {
             s->err = 1;
         }
         break;
@@ -104,26 +153,31 @@ static void test_selections_2165(int b[], int k, void *data)
     ++(s->index);
 }
 
-BEGIN_TEST(generate_selections) {
-    int a[] = { 2, 1, 6, 5 };
+BEGIN_TEST(generate_selections)
+{
+    int a[] = {2, 1, 6, 5};
     int b[2];
-    state_t s2165 = { .index = 0, .err = 1 };
+    state_t s2165 = {.index = 0, .err = 1};
     generate_selections(a, 4, 2, b, &s2165, test_selections_2165);
     ASSERT(!s2165.err, "Failed on 2 1 6 5.");
-} END_TEST
+}
+END_TEST
 
 void test_splits_art(char buf[], void *data)
 {
-    state_t *s = (state_t*)data;
+    state_t *s = (state_t *)data;
     s->err = 0;
-    switch (s->index) {
+    switch (s->index)
+    {
     case 0:
-        if (!strcmp(buf, "art is toil")) {
+        if (!strcmp(buf, "art is toil"))
+        {
             s->err = 1;
         }
         break;
     case 1:
-        if (!strcmp(buf, "artist oil")) {
+        if (!strcmp(buf, "artist oil"))
+        {
             s->err = 1;
         }
         break;
@@ -132,35 +186,37 @@ void test_splits_art(char buf[], void *data)
     }
 }
 
-BEGIN_TEST(generate_splits) {
+BEGIN_TEST(generate_splits)
+{
     const char *a = "artistoil";
     const char *dict[] = {
         "art",
         "artist",
         "is",
         "oil",
-        "toil"
-    };
+        "toil"};
     int nwords = 5;
-    state_t s = { .index = 0, .err = 1 };
+    state_t s = {.index = 0, .err = 1};
     char buf[256];
     generate_splits(a, dict, nwords, buf, &s, test_splits_art);
     ASSERT(!s.err, "Failed on 'artistoil'.");
-} END_TEST
+}
+END_TEST
 
-BEGIN_TEST(previous_permutation) {
-    int a[] = { 1, 5, 6, 2, 3, 4 };
+BEGIN_TEST(previous_permutation)
+{
+    int a[] = {1, 5, 6, 2, 3, 4};
     previous_permutation(a, 6);
     ASSERT_ARRAY_VALUES_EQ(a, 6, "Failed on 1 5 6 2 3 4.", 1, 5, 4, 6, 3, 2);
-} END_TEST
+}
+END_TEST
 
 int main()
 {
-    run_tests((test_t[]) {
-            TEST(generate_selections),
-            TEST(generate_splits),
-            TEST(previous_permutation),
-            0
-        });
+    run_tests((test_t[]){
+        TEST(generate_selections),
+        TEST(generate_splits),
+        TEST(previous_permutation),
+        0});
     return 0;
 }
