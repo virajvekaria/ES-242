@@ -52,22 +52,16 @@ void generate_splits(const char *source, const char *dictionary[], int nwords, c
  * Transform a[] so that it becomes the previous permutation of the elements in it.
  * If a[] is the first permutation, leave it unchanged.
  */
+
 void previous_permutation(int a[], int n)
 {
-    a[0] = 1;
-    a[1] = 5;
-    a[2] = 4;
-    a[3] = 6;
-    a[4] = 3;
-    a[5] = 2;
-
-    for (int i = 5; i > 0; i++)
+    for (int i = n-1; i > 0; i--)
     {
         if (a[i] < a[i - 1])
         {
             // swap with just smaller element and arrange in descending order and then break
-            int maxi = i - 1;
-            for (int j = i; j < 5; j++)
+            int maxi = i;
+            for (int j = i; j < n; j++)
             {
                 if (a[j] < a[i - 1] && a[j] > a[maxi])
                 {
@@ -79,24 +73,18 @@ void previous_permutation(int a[], int n)
             a[maxi] = a[i - 1];
             a[i - 1] = temp;
 
-            for (int k = i; k < 5; k++)
+            // arange the remaining from descending order sort
+            for (int k = i, l = n - 1; k < l; k++, l--)
             {
-                int key = a[k];
-                int j = k - 1;
-
-                // Move elements of arr[0..i-1] that are greater than key
-                // to one position ahead of their current position
-                while (j >= i && a[j] > key)
-                {
-                    a[j + 1] = a[j];
-                    j = j - 1;
-                }
-                a[j + 1] = key;
+                // Swap elements at k and l to achieve descending order
+                int temp = a[k];
+                a[k] = a[l];
+                a[l] = temp;
             }
+            break;
         }
     }
 }
-
 /* Write your tests here. Use the previous assignment for reference. */
 
 typedef struct
