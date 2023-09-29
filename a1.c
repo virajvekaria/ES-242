@@ -40,12 +40,57 @@ void generate_selections(int a[], int n, int k, int b[], void *data, void (*proc
  * The dictionary parameter is an array of words, sorted in dictionary order.
  * nwords is the number of words in this dictionary.
  */
+int binary_search(char *word, const char *dictionary[], int nwords)
+{
+    int start = 0;
+    int end = nwords -1;
+    while (start <= end)
+    {
+        int mid = (start + end)/2;
+        if (strcmp(word, dictionary[mid]) < 0)
+            end = mid - 1;
+        else if (strcmp(word, dictionary[mid]) > 0)
+            start = mid + 1;
+        else 
+            return 1;
+    }
+    return 0;
+}
+
+void generate_splits_recursive(const char *source, const char *dictionary[], int nwords, char buf[], void *data, void (*process_split)(char buf[], void *data), int j)
+{
+//     strcpy(buf, "art is toil");
+//     process_split(buf, data);
+//     strcpy(buf, "artist oil");
+//     process_split(buf, data);
+
+    for (int i = 0; i < strlen(source); i++)
+    {
+        buf[j+i] = source[i];
+        buf[j+i+1] = '\0';
+        if (binary_search(&buf[j], dictionary, nwords) == 1)
+        {
+
+            if (i != strlen(source) -1) {
+                buf[j+i+1] = ' ';
+                generate_splits_recursive(&source[i+1], dictionary, nwords, buf, data, process_split, j+i+2);
+            }
+            else 
+                process_split(buf, data);
+        }
+    }
+    
+}
+
 void generate_splits(const char *source, const char *dictionary[], int nwords, char buf[], void *data, void (*process_split)(char buf[], void *data))
 {
-    strcpy(buf, "art is toil");
-    process_split(buf, data);
-    strcpy(buf, "artist oil");
-    process_split(buf, data);
+//     strcpy(buf, "art is toil");
+//     process_split(buf, data);
+//     strcpy(buf, "artist oil");
+//     process_split(buf, data);
+generate_splits_recursive(source, dictionary, nwords, buf, data, process_split, 0);
+
+
 }
 
 /*
