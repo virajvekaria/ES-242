@@ -12,6 +12,7 @@ enum
 };
 
 typedef char board_t[4][5];
+typedef char player_t;
 
 void init_board(board_t *board)
 {
@@ -24,7 +25,7 @@ void init_board(board_t *board)
     }
 }
 
-char other_player(char player)
+player_t other_player(player_t player)
 {
     switch (player)
     {
@@ -38,7 +39,7 @@ char other_player(char player)
     }
 }
 
-int has_won(board_t board, char player)
+int has_won(board_t board, player_t player)
 {
     for (int row = 0; row < 4; ++row)
     {
@@ -106,7 +107,7 @@ int is_full(board_t board)
     return 1;
 }
 
-int score(board_t board, char player)
+int score(board_t board, player_t player)
 {
     assert(has_won(board, player));
     int score = 10;
@@ -129,7 +130,7 @@ typedef struct
     int score;
 } move_t;
 
-int drop_piece(board_t board, int col, char player)
+int drop_piece(board_t board, int col, player_t player)
 {
     assert(board[3][col] == '0' || board[2][col] == '0' || board[1][col] == '0' || board[0][col] == '0');
     for (int row = 3; row >= 0; --row)
@@ -156,7 +157,7 @@ void print_board(board_t board)
     printf("\n");
 }
 
-move_t best_move(board_t board, char player, int depth, int alpha, int beta)
+move_t best_move(board_t board, player_t player, int depth, int alpha, int beta)
 {
     move_t response;
     move_t candidate = {.col = -1, .score = (player == 'B') ? INT_MIN : INT_MAX};
@@ -231,7 +232,7 @@ int main()
     }
 
     move_t response;
-    char current = 'R';
+    player_t current = 'R';
     int depth = 5; // Set the depth for AI search
 
     while (true)
