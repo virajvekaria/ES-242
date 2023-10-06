@@ -1,7 +1,7 @@
 #include <stdio.h>
-#include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <limits.h>
 
 /* Implement connect 4 on a 5 (columns) x 4 (rows) board. */
 enum
@@ -12,7 +12,6 @@ enum
 };
 
 typedef char board_t[4][5];
-typedef char player_t;
 
 void init_board(board_t *board)
 {
@@ -25,17 +24,21 @@ void init_board(board_t *board)
     }
 }
 
-player_t other_player(player_t player){
+char other_player(char player)
+{
     switch (player)
     {
-    case 'R': return 'B';
-    case 'B': return 'R';
+    case 'R':
+        return 'B';
+    case 'B':
+        return 'R';
     default:
         assert(0);
+        return 0;
     }
 }
 
-int has_won(board_t board, player_t player)
+int has_won(board_t board, char player)
 {
     for (int row = 0; row < 4; ++row)
     {
@@ -103,7 +106,8 @@ int is_full(board_t board)
     return 1;
 }
 
-int score(board_t board, player_t player){
+int score(board_t board, char player)
+{
     assert(has_won(board, player));
     int score = 10;
     for (int i = 0; i < 4; ++i)
@@ -125,81 +129,7 @@ typedef struct
     int score;
 } move_t;
 
-move_t best_move(board_t board, player_t player)
-{
-    move_t response;
-    move_t candidate;
-    int no_candidate = 0;
-
-    assert(!is_full(board));
-    assert(!has_won(board, 1));
-    assert(!has_won(board, 2));
-
-    for (int row = 0; row < 4; ++row)
-    {
-        for (int col = 0; col < 5; ++col)
-        {
-            if(board[row][col] == '0'){
-                board[row][col] = player;
-                if(has_won(board, player)){
-                    candidate = (move_t) {.col = col,
-                    .score = score(board, player)};
-                    return candidate;
-                }
-            board[row][col] = '0';
-            }
-        }
-        
-    }
-
-    for (int row = 0; row < 4; ++row)
-    {
-        for (int col = 0; col < col; col++)
-        {
-            if(board[row][col] == '0'){
-                board[row][col] = player;
-                if(is_full(board)){
-                    candidate = (move_t){
-                        .col = col,
-                        .score = 0
-                    };
-                return candidate;
-                }
-            
-            response = best_move(board, other_player(player));
-            board[row][col] = '0';
-            if(response.score < 0){
-                candidate = (move_t){
-                    .col = col,
-                    .score = 10 + response.score
-                };
-                return candidate;
-            }
-            else if (response.score = 0){
-                candidate = (move_t){
-                    .col = col,
-                    .score = 0
-                };
-                return candidate;
-            }
-            else{
-                if(no_candidate){
-                candidate = (move_t){
-                    .col = col,
-                    .score = -(response.score)
-                };
-                no_candidate = 0;
-                }
-            }
-            }
-        }
-        
-    }
-    return candidate;
-    
-}
-
-int drop_piece(board_t board, int col, player_t player)
+int drop_piece(board_t board, int col, char player)
 {
     assert(board[3][col] == '0' || board[2][col] == '0' || board[1][col] == '0' || board[0][col] == '0');
     for (int row = 3; row >= 0; --row)
@@ -226,31 +156,117 @@ void print_board(board_t board)
     printf("\n");
 }
 
+move_t best_move(board_t board, char player, int depth, int alpha, int beta)
+{
+    move_t response;
+    move_t candidate = {.col = -1, .score = (player == 'B') ? INT_MIN : INT_MAX};
+
+    if (has_won(board, 'R'))
+    {
+        candidate.score = -10;
+        return candidate;
+    }
+    if (has_won(board, 'B'))
+    {
+        candidate.score = 10;
+        return candidate;
+    }
+
+    if (is_full(board) || depth == 0)
+    {
+        candidate.score = 0;
+        return candidate;
+    }
+
+    for (int col = 0; col < 5; ++col)
+    {
+        if (board[0][col] == '0')
+        {
+            int row = drop_piece(board, col, player);
+            response = best_move(board, (player == 'B') ? 'R' : 'B', depth - 1, alpha, beta);
+            board[row][col] = '0';
+
+            if (player == 'B')
+            {
+                if (response.score > candidate.score)
+                {
+                    candidate.col = col;
+                    candidate.score = response.score;
+                }
+                alpha = (alpha > response.score) ? alpha : response.score;
+            }
+            else // player == 'R'
+            {
+                if (response.score < candidate.score)
+                {
+                    candidate.col = col;
+                    candidate.score = response.score;
+                }
+                beta = (beta < response.score) ? beta : response.score;
+            }
+
+            if (beta <= alpha)
+            {
+                break; // Alpha-beta pruning
+            }
+        }
+    }
+
+    return candidate;
+}
+
 int main()
 {
-    /* Your game play logic. */
-    /* The user should have the option to select red or blue player. */
-    int move;
     board_t board;
     init_board(&board);
 
+    char user_choice;
+    printf("Do you want to start as Red (R) or Blue (B)? ");
+    scanf(" %c", &user_choice);
+
+    if (user_choice != 'R' && user_choice != 'B')
+    {
+        printf("Invalid choice. Please select 'R' or 'B'.\n");
+        return 1;
+    }
+
     move_t response;
-    player_t current = 'R';
+    char current = 'R';
+    int depth = 5; // Set the depth for AI search
 
     while (true)
     {
         print_board(board);
-        if (current == 'R')
+
+        if ((user_choice == 'R' && current == 'R') || (user_choice == 'B' && current == 'B'))
         {
-            printf("Enter your move: ");
+            printf("Enter your move (0-4): ");
+                        int move;
             scanf("%d", &move);
+            
+            while (move < 0 || move > 4 || board[0][move] != '0')
+            {
+                printf("Invalid move. Please try again: ");
+                scanf("%d", &move);
+            }
+
             drop_piece(board, move, current);
         }
         else
         {
-            response = best_move(board, current);
+            printf("AI is thinking...\n");
+            response = best_move(board, current, depth, INT_MIN, INT_MAX);
+
+            if (response.col == -1)
+            {
+                printf("AI couldn't find a move. It's a draw!\n");
+                break;
+            }
+            printf("AI chooses column %d\n", response.col);
+
             drop_piece(board, response.col, current);
         }
+
         if (has_won(board, current))
         {
             print_board(board);
@@ -263,7 +279,7 @@ int main()
             printf("Draw.\n");
             break;
         }
-        current = other_player(current);
+        current = (current == 'R') ? 'B' : 'R';
     }
 
     return 0;
