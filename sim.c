@@ -1,197 +1,191 @@
 #include <stdio.h>
-#include <assert.h>
-#include <limits.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <time.h>
 
-/*
- * The status of a line.
- */
 enum {
-    NO = 0, /* No line */
+    NO = 0,
     RED = 1,
     BLUE = 2
 };
 
-#define MAX_LINES (15)
-
-/*
- * The board records the colors of the lines.
- * board[0] = color of 12
- * board[1] = color of 13
- * ...
- * board[14] = color of 56
- */
 typedef char board_t[15];
-typedef char player_t; /* A player should be RED or BLUE. */
+typedef char player_t;
 
-/* Global array to store the points associated with each line */
-int points[15] = {12, 13, 14, 15, 16, 23, 24, 25, 26, 34, 35, 36, 45, 46, 56};
-
-int is_line_occupied(board_t board, int line)
-{
-    return board[line] != NO;
+void initializeBoard(board_t board) {
+    for (int i = 0; i < 15; i++) {
+        board[i] = '.';
+    }
 }
 
-int has_won(board_t board, player_t player) {
-    // Define an array to store the points occupied by the player
-    int playerPoints[6] = {0}; // Initialize to 0
+void playMove(board_t board, int move, player_t player) {
+    board[move] = player;
+}
 
-    // Determine the points occupied by the player
-    for (int line = 0; line < 15; ++line) {
-        if (board[line] == player) {
-            // Map lines to points (12 to 56)
-            int point = (line + 12) / 2;
-            playerPoints[point - 1] = 1; // Mark the point as occupied by the player
+bool isValidMove(board_t board, int move) {
+    return move >= 0 && move < 15 && board[move] == '.';
+}
+
+bool hasLost(board_t board, player_t player) {
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4 - i; j++) {
+            for (int k = 0; k < 4 - i - j; k++) {
+                int a1 = (i * (11 - i) / 2) + j + 1;
+                int a2 = a1 + k + 1;
+                int a3 = 6 + k + (i + j) * (9 - i - j) / 2;
+                a1 = a1 - 1;
+                a2 = a2 - 1;
+                a3 = a3 - 1;
+                
+                if (board[a1] == board[a2] && board[a2] == board[a3] && board[a3] == player) {
+                    return 1;
+                }
+            }
         }
     }
-
-    // Define all possible combinations of triangles (3 points each)
-    int triangles[20][3] = {
-        {1, 2, 3}, {1, 2, 4}, {1, 2, 5}, {1, 2, 6},
-        {1, 3, 4}, {1, 3, 5}, {1, 3, 6}, {1, 4, 5},
-        {1, 4, 6}, {1, 5, 6}, {2, 3, 4}, {2, 3, 5},
-        {2, 3, 6}, {2, 4, 5}, {2, 4, 6}, {2, 5, 6},
-        {3, 4, 5}, {3, 4, 6}, {3, 5, 6}, {4, 5, 6}
-    };
-
-    // Check if any of the triangles is formed by the player
-    for (int i = 0; i < 20; ++i) {
-        int point1 = triangles[i][0];
-        int point2 = triangles[i][1];
-        int point3 = triangles[i][2];
-
-        // Check if all three points are occupied by the player
-        if (playerPoints[point1 - 1] && playerPoints[point2 - 1] && playerPoints[point3 - 1]) {
-            return 1; // Player has formed a triangle, game ends, and the other player wins
-        }
-    }
-
-    // If no triangles are formed, the game continues
     return 0;
 }
 
-int is_full(board_t board)
-{
-    // Checks if board is full
-    // Return 1 if the board is full, 0 otherwise.
-    for (int i = 0; i < 15; i++)
-    {
-        if (board[i] == NO)
-        {
-            return 0;
+
+bool isFull(board_t board) {
+    for (int i = 0; i < 15; i++) {
+        if (board[i] == '.') {
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
 typedef struct {
     int line; /* 0 for 12, 1 for 13, ..., 14 for 56. */
     int score; /* -1 for loss, 0 for draw, 1 for win. */
-} move_t;
+} move_score;
 
-move_t best_move(board_t board, char player, int depth, int alpha, int beta) {
-    move_t response;
-    move_t candidate = {.line = -1, .score = (player == 'B') ? INT_MIN : INT_MAX};
+move_score best_move(board_t board, player_t player, int alpha, int beta, int depth, int max_min) {
+    move_score best;
+    best.score = (max_min == 1) ? -INT_MAX : INT_MAX;
+    best.line = -1;
 
-    if (has_won(board, 'R')) {
-        candidate.score = -10;
-        return candidate;
-    }
-    if (has_won(board, 'B')) {
-        candidate.score = 10;
-        return candidate;
-    }
-
-    if (is_full(board) || depth == 0) {
-        candidate.score = 0;
-        return candidate;
+    if (hasLost(board, player)) {
+        best.score = -1;
+        return best;
+    } 
+    else if (hasLost(board, (player == 'R') ? 'B' : 'R')) {
+        best.score = 1;
+        return best;
     }
 
-    for (int line = 0; line < MAX_LINES; ++line) {
-        if (board[line] == NO) {
-            // Simulate drawing the line
-            board[line] = player;
 
-            if (has_won(board, other_player(player))) {
-                // If forming a triangle, give it a high score
-                response.score = (player == 'B') ? 1000 : -1000;
-            } else {
-                // If not forming a triangle, evaluate the position
-                response = best_move(board, (player == 'B') ? 'R' : 'B', depth - 1, alpha, beta);
-            }
+    if (max_min == 1) {
+        for (int col = 14; col >= 0; col--) {
+            if (isValidMove(board, col)) {
+                
+                playMove(board, col, player);
 
-            // Undo the move
-            board[line] = NO;
+                move_score eval = best_move(board, player, alpha, beta, depth + 1, 0);
 
-            if (player == 'B') {
-                if (response.score > candidate.score) {
-                    candidate.line = line;
-                    candidate.score = response.score;
+                board[col] = '.';
+
+                if (eval.score > best.score) {
+                    best.score = eval.score;
+                    best.line = col;
                 }
-                alpha = (alpha > response.score) ? alpha : response.score;
-            } else { // player == 'R'
-                if (response.score < candidate.score) {
-                    candidate.line = line;
-                    candidate.score = response.score;
+                alpha = (alpha > best.score) ? alpha : best.score;
+                if (alpha >= beta) {
+                    break;
                 }
-                beta = (beta < response.score) ? beta : response.score;
             }
+        }
+    } else { // max_min = 0
+        for (int col = 14; col >= 0; col--) {
+            if (isValidMove(board, col)) {
+                playMove(board, col, (player == 'R') ? 'B' : 'R');
 
-            if (beta <= alpha) {
-                break; // Alpha-beta pruning
+                move_score eval = best_move(board, player, alpha, beta, depth + 1, 1);
+
+                board[col] = '.';
+
+                if (eval.score < best.score) {
+                    best.score = eval.score;
+                    best.line = col;
+                }
+                beta = (beta < best.score) ? beta : best.score;
+                if (alpha >= beta) {
+                    break;
+                }
             }
         }
     }
-
-    return candidate;
+    return best;
 }
 
-
-void print_board(board_t board)
-{
-    for (int i = 0; i < 15; ++i) {
-        switch (board[i]) {
-        case RED: printf("R  "); break;
-        case BLUE: printf("B  "); break;
-        case NO: printf(". "); break;
-        }
+void printBoard(board_t board) {
+    for (int i = 0; i < 15; i++) {
+        printf("%c ", board[i]);
     }
     printf("\n");
 }
 
-void make_move(board_t board, int line, player_t player){
-    assert(line >= 0 && line < 15);
-    board[line] = player;
+int generateRandomMove(board_t board, int lower, int upper) {
+    while (1) {
+        int num = (rand() % (upper - lower + 1)) + lower;
+        if (isValidMove(board, num)) {
+            return num;
+        }
+    }
 }
 
-int main()
-{
-    player_t user_choice;
-    printf("Select your player (R for RED, B for BLUE): ");
-    scanf(" %c", &user_choice);
+int main() {
+    board_t board;
+    initializeBoard(board);
+    printf("Initializing Board...\n");
+    printBoard(board);
+    printf("\n");
 
-    player_t current_player = user_choice;
-    board_t game_board;
+    player_t user;
+    printf("Red plays First\n");
+    printf("Which Color do you choose? (R or B): ");
+    scanf(" %c", &user);
 
-    for (int i = 0; i < 15; i++)
-    {
-        game_board[i] = NO;
+    while (user != 'R' && user != 'B') {
+        printf("Invalid choice. Please select 'R' or 'B': ");
+        scanf(" %c", &user);
     }
+    printf("\n");
 
-    while (!has_won(game_board, current_player) && !is_full(game_board)){
-        printf("Current board:\n");
-        print_board(game_board);
+    player_t computer = (user == 'R') ? 'B' : 'R';
+    player_t current = 'R';
 
-        move_t move = best_move(game_board, current_player, 0, INT_MIN, INT_MAX);
-
-        // Check if the chosen line is valid and not occupied
-        if (move.line >= 0 && move.line < 15 && !is_line_occupied(game_board, move.line)) {
-            make_move(game_board, move.line, current_player);
+    while (1) {
+        if (current == user) {
+            int move;
+            printf("Enter your move (1, 15): ");
+            scanf("%d", &move);
+            while (!isValidMove(board, move - 1)) {
+                printf("Not a valid move. Enter move again: ");
+                scanf("%d", &move);
+            }
+            playMove(board, move - 1, current);
         } else {
-            printf("Invalid move. Try again.\n");
-            continue;
+            printf("Computer is thinking...\n");
+            move_score computerMove = best_move(board, current, INT_MIN, INT_MAX, 0, 1);
+            playMove(board, computerMove.line , current);
         }
 
-        current_player = (current_player == RED) ? BLUE : RED;
+        printBoard(board);
+        printf("\n");
+
+        if (hasLost(board, current)) {
+            if (current == user) {
+                printf("OOPS! Computer Won\n");
+            } else {
+                printf("HURRAY! You Won\n");
+            }
+            break;
+        }
+
+        current = (current == user) ? computer : user;
     }
+
     return 0;
 }
